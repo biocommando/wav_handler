@@ -206,5 +206,18 @@ int main(int argc, char **argv)
     PRINT_ON_ERR(free_wav_file(&wav));
     PRINT_ON_ERR(free_wav_file(&wav2));
     
+    printf("Read test: wave data with additional header etc. data\n");
+    PRINT_ON_ERR(read_wav_file("sine.dat", &wav));
+    PRINT_ON_ERR(create_wav_file(&wav2, wav.num_frames, wav.channels, 16, wav.sample_rate));
+    for (int i = 0; i < wav.num_frames; i++)
+    {
+        float val = 0;
+        PRINT_ON_ERR(wav_get_normalized(&wav, i, &val));
+        PRINT_ON_ERR(wav_set_normalized(&wav2, i, &val));
+    }
+    PRINT_ON_ERR(write_wav_file("read_sine.wav", &wav2));
+    PRINT_ON_ERR(free_wav_file(&wav));
+    PRINT_ON_ERR(free_wav_file(&wav2));
+    
     return 0;
 }
