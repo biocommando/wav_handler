@@ -3,6 +3,23 @@
 #include <string.h>
 #include "wav_handler.h"
 
+int read_until_header(FILE *f, const char *hdr, unsigned *data_length)
+{
+    int found = 0;
+    char temp_data[5];
+    temp_data[4] = 0;
+    while (!found && !feof(f))
+    {
+        fread(temp_data, 1, 4, f);
+        if (!strcmp(temp_data, hdr))
+            found = 1;
+        fread(data_length, sizeof(unsigned), 1, f);
+        if (!found)
+            fseek(f, *data_length, SEEK_CUR);
+    }
+    return found ? 0 : -1;
+}
+
 int read_wav_file(const char *file_name, struct wav_file *wav)
 {
     wav->data = NULL;
@@ -18,11 +35,9 @@ int read_wav_file(const char *file_name, struct wav_file *wav)
     fread(temp_data, 1, 4, f);
     if (strcmp(temp_data, "WAVE"))
         goto err;
-    fread(temp_data, 1, 4, f);
-    if (strcmp(temp_data, "fmt "))
-        goto err;
     unsigned len_fmt_data;
-    fread(&len_fmt_data, sizeof(unsigned), 1, f);
+    if (read_until_header(f, "fmt ", &len_fmt_data))
+        goto err;
     if (len_fmt_data != 16)
         goto err;
     unsigned short fmt_type;
@@ -38,20 +53,7 @@ int read_wav_file(const char *file_name, struct wav_file *wav)
     unsigned short bit_depth;
     fread(&bit_depth, sizeof(unsigned short), 1, f);
     unsigned num_bytes = 0;
-    // Let's read and discard other possible headers until we reach "data" header
-    while (!feof(f))
-    {
-        fread(temp_data, 1, 4, f);
-        unsigned size;
-        fread(&size, sizeof(unsigned), 1, f);
-        if (!strcmp(temp_data, "data"))
-        {
-            num_bytes = size;
-            break;
-        }
-        fseek(f, size, SEEK_CUR);
-    }
-    if (strcmp(temp_data, "data"))
+    if (read_until_header(f, "data", &num_bytes))
         goto err;
     wav->data = (char*)malloc(num_bytes);
     if (!wav->data)
