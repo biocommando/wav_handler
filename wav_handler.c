@@ -3,7 +3,7 @@
 #include <string.h>
 #include "wav_handler.h"
 
-int read_until_header(FILE *f, const char *hdr, unsigned *data_length)
+int read_until_header(FILE *f, const char *hdr, unsigned *data_length, struct wav_file_custom_header_data *chdr)
 {
     int found = 0;
     char temp_data[5];
@@ -15,12 +15,37 @@ int read_until_header(FILE *f, const char *hdr, unsigned *data_length)
             found = 1;
         fread(data_length, sizeof(unsigned), 1, f);
         if (!found)
-            fseek(f, *data_length, SEEK_CUR);
+        {
+            int custom_header_found = 0;
+            if (chdr)
+            {
+                for (struct wav_file_custom_header_data *chdr_item = chdr; chdr_item->header_name[0]; chdr_item++)
+                {
+                    if (!strcmp(chdr_item->header_name, temp_data))
+                    {
+                        custom_header_found = 1;
+                        chdr_item->num_bytes = *data_length;
+                        chdr_item->data = (char*)malloc(*data_length);
+                        if (!chdr_item->data)
+                            return -1;
+                        fread(chdr_item->data, 1, *data_length, f);
+                        break;
+                    }
+                }
+            }
+            if (!custom_header_found)
+                fseek(f, *data_length, SEEK_CUR);
+        }
     }
     return found ? 0 : -1;
 }
 
 int read_wav_file(const char *file_name, struct wav_file *wav)
+{
+    return read_wav_file_chdr(file_name, wav, NULL);
+}
+
+int read_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_file_custom_header_data *chdr)
 {
     wav->data = NULL;
     char temp_data[5] = "abcd";
@@ -36,7 +61,7 @@ int read_wav_file(const char *file_name, struct wav_file *wav)
     if (strcmp(temp_data, "WAVE"))
         goto err;
     unsigned len_fmt_data;
-    if (read_until_header(f, "fmt ", &len_fmt_data))
+    if (read_until_header(f, "fmt ", &len_fmt_data, chdr))
         goto err;
     if (len_fmt_data != 16)
         goto err;
@@ -53,7 +78,7 @@ int read_wav_file(const char *file_name, struct wav_file *wav)
     unsigned short bit_depth;
     fread(&bit_depth, sizeof(unsigned short), 1, f);
     unsigned num_bytes = 0;
-    if (read_until_header(f, "data", &num_bytes))
+    if (read_until_header(f, "data", &num_bytes, chdr))
         goto err;
     wav->data = (char*)malloc(num_bytes);
     if (!wav->data)
@@ -85,6 +110,11 @@ int free_wav_file(struct wav_file *wav)
 
 int write_wav_file(const char *file_name, struct wav_file *wav)
 {
+    return write_wav_file_chdr(file_name, wav, NULL);
+}
+
+int write_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_file_custom_header_data *chdr)
+{
     if (!wav->data)
         return -1;
     FILE *f = fopen(file_name, "wb");
@@ -107,6 +137,15 @@ int write_wav_file(const char *file_name, struct wav_file *wav)
     fwrite(&bytes_per_frame, sizeof(unsigned short), 1, f);
     unsigned short bit_depth = (unsigned short)wav->bit_depth;
     fwrite(&bit_depth, sizeof(unsigned short), 1, f);
+    if (chdr)
+    {
+        for (struct wav_file_custom_header_data *hdr = chdr; hdr->header_name[0]; hdr++)
+        {
+            fwrite(hdr->header_name, 1, 4, f);
+            fwrite(&hdr->num_bytes, sizeof(unsigned), 1, f);
+            fwrite(hdr->data, 1, hdr->num_bytes, f);
+        }
+    }
     fwrite("data", 1, 4, f);
     fwrite(&wav->num_bytes, sizeof(unsigned), 1, f);
     fwrite(wav->data, 1, wav->num_bytes, f);

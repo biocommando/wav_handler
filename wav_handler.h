@@ -11,11 +11,22 @@ struct wav_file
    char *data;
 };
 
+struct wav_file_custom_header_data
+{
+   char header_name[5];
+   unsigned num_bytes;
+   char *data;
+};
+
 int read_wav_file(const char *file_name, struct wav_file *wav);
+
+int read_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_file_custom_header_data *chdr);
 
 int free_wav_file(struct wav_file *wav);
 
 int write_wav_file(const char *file_name, struct wav_file *wav);
+
+int write_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_file_custom_header_data *chdr);
 
 int create_wav_file(struct wav_file *wav, unsigned num_frames, unsigned channels, unsigned bit_depth, unsigned sample_rate);
 

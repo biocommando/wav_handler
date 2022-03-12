@@ -207,7 +207,22 @@ int main(int argc, char **argv)
     PRINT_ON_ERR(free_wav_file(&wav2));
     
     printf("Read test: wave data with additional header etc. data\n");
-    PRINT_ON_ERR(read_wav_file("sine.dat", &wav));
+    struct wav_file_custom_header_data custom_headers[3] = {
+        {"fact", 0, NULL},
+        {"PEAK", 0, NULL},
+        {"", 0, NULL},
+    };
+    PRINT_ON_ERR(read_wav_file_chdr("sine.dat", &wav, custom_headers));
+
+    printf("Custom header data:\n");
+    for (int i = 0; custom_headers[i].header_name[0]; i++)
+    {
+        printf("Header %s, size = %u, data: ", custom_headers[i].header_name, custom_headers[i].num_bytes);
+        for (int j = 0; j < custom_headers[i].num_bytes; j++)
+            printf("%2x ", ((unsigned)custom_headers[i].data[j]) & 0xFF);
+        printf("\n");
+    }
+
     PRINT_ON_ERR(create_wav_file(&wav2, wav.num_frames, wav.channels, 16, wav.sample_rate));
     for (int i = 0; i < wav.num_frames; i++)
     {
@@ -215,9 +230,12 @@ int main(int argc, char **argv)
         PRINT_ON_ERR(wav_get_normalized(&wav, i, &val));
         PRINT_ON_ERR(wav_set_normalized(&wav2, i, &val));
     }
-    PRINT_ON_ERR(write_wav_file("read_sine.wav", &wav2));
+    PRINT_ON_ERR(write_wav_file_chdr("read_sine.wav", &wav2, custom_headers));
     PRINT_ON_ERR(free_wav_file(&wav));
     PRINT_ON_ERR(free_wav_file(&wav2));
-    
+
+    free(custom_headers[0].data);
+    free(custom_headers[1].data);
+
     return 0;
 }
