@@ -10,8 +10,8 @@ int read_until_header(FILE *f, unsigned file_total_size, const char *hdr, unsign
     char temp_data[5];
     temp_data[4] = 0;
     while (!found &&
-        // feof doesn't seem to work here for some reason
-        ftell(f) < file_total_size)
+           // feof doesn't seem to work here for some reason
+           ftell(f) < file_total_size)
     {
         fread(temp_data, 1, 4, f);
         if (!strcmp(temp_data, hdr))
@@ -28,7 +28,7 @@ int read_until_header(FILE *f, unsigned file_total_size, const char *hdr, unsign
                     {
                         custom_header_found = 1;
                         chdr_item->num_bytes = *data_length;
-                        chdr_item->data = (char*)malloc(*data_length);
+                        chdr_item->data = (char *)malloc(*data_length);
                         if (!chdr_item->data)
                             return -1;
                         fread(chdr_item->data, 1, *data_length, f);
@@ -84,7 +84,7 @@ int read_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_f
     unsigned num_bytes = 0;
     if (read_until_header(f, f_size, "data", &num_bytes, chdr))
         goto err;
-    wav->data = (char*)malloc(num_bytes);
+    wav->data = (char *)malloc(num_bytes);
     if (!wav->data)
         goto err;
     fread(wav->data, 1, num_bytes, f);
@@ -103,7 +103,8 @@ int read_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_f
     wav->is_float = fmt_type == 3;
     return 0;
 err:
-    if (f) fclose(f);
+    if (f)
+        fclose(f);
     return -1;
 }
 
@@ -166,7 +167,7 @@ int write_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_
 int create_wav_file(struct wav_file *wav, unsigned num_frames, unsigned channels, unsigned bit_depth, unsigned sample_rate)
 {
     unsigned num_bytes = bit_depth / 8 * num_frames * channels;
-    wav->data = (char*)malloc(num_bytes);
+    wav->data = (char *)malloc(num_bytes);
     if (!wav->data)
         return -1;
     memset(wav->data, 0, num_bytes);
@@ -259,7 +260,7 @@ int wav_set_normalized(struct wav_file *wav, unsigned sample_idx, float *value)
         {
             val = (val + 1) / 2;
             val *= 0xFF;
-            *(unsigned char*)data_p = val;
+            *(unsigned char *)data_p = val;
         }
         else if (byte_depth == 2)
         {
@@ -291,5 +292,3 @@ int wav_set_normalized(struct wav_file *wav, unsigned sample_idx, float *value)
     }
     return 0;
 }
-
-
