@@ -1,14 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 #include "wav_handler.h"
 
-int read_until_header(FILE *f, const char *hdr, unsigned *data_length, struct wav_file_custom_header_data *chdr)
+int read_until_header(FILE *f, unsigned file_total_size, const char *hdr, unsigned *data_length, struct wav_file_custom_header_data *chdr)
 {
     int found = 0;
     char temp_data[5];
     temp_data[4] = 0;
-    while (!found && !feof(f))
+    while (!found &&
+        // feof doesn't seem to work here for some reason
+        ftell(f) < file_total_size)
     {
         fread(temp_data, 1, 4, f);
         if (!strcmp(temp_data, hdr))
@@ -57,11 +60,12 @@ int read_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_f
         goto err;
     unsigned f_size;
     fread(&f_size, sizeof(unsigned), 1, f);
+    f_size += 8;
     fread(temp_data, 1, 4, f);
     if (strcmp(temp_data, "WAVE"))
         goto err;
     unsigned len_fmt_data;
-    if (read_until_header(f, "fmt ", &len_fmt_data, chdr))
+    if (read_until_header(f, f_size, "fmt ", &len_fmt_data, chdr))
         goto err;
     if (len_fmt_data != 16)
         goto err;
@@ -78,12 +82,18 @@ int read_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_f
     unsigned short bit_depth;
     fread(&bit_depth, sizeof(unsigned short), 1, f);
     unsigned num_bytes = 0;
-    if (read_until_header(f, "data", &num_bytes, chdr))
+    if (read_until_header(f, f_size, "data", &num_bytes, chdr))
         goto err;
     wav->data = (char*)malloc(num_bytes);
     if (!wav->data)
         goto err;
     fread(wav->data, 1, num_bytes, f);
+    // read headers that are after data header
+    if (chdr)
+    {
+        unsigned x;
+        read_until_header(f, f_size, "", &x, chdr);
+    }
     fclose(f);
     wav->num_bytes = num_bytes;
     wav->channels = num_channels;

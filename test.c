@@ -207,9 +207,10 @@ int main(int argc, char **argv)
     PRINT_ON_ERR(free_wav_file(&wav2));
     
     printf("Read test: wave data with additional header etc. data\n");
-    struct wav_file_custom_header_data custom_headers[3] = {
+    struct wav_file_custom_header_data custom_headers[4] = {
         {"fact", 0, NULL},
         {"PEAK", 0, NULL},
+        {"LIST", 0, NULL},
         {"", 0, NULL},
     };
     PRINT_ON_ERR(read_wav_file_chdr("sine.dat", &wav, custom_headers));
@@ -236,6 +237,7 @@ int main(int argc, char **argv)
 
     free(custom_headers[0].data);
     free(custom_headers[1].data);
+    free(custom_headers[2].data);
 
     return 0;
 }
