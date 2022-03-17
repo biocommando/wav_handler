@@ -48,31 +48,38 @@ int read_wav_file(const char *file_name, struct wav_file *wav)
     return read_wav_file_chdr(file_name, wav, NULL);
 }
 
+#define read_wav_file_chdr_err \
+    {                          \
+        if (f)                 \
+            fclose(f);         \
+        return -1;             \
+    }
+
 int read_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_file_custom_header_data *chdr)
 {
     wav->data = NULL;
     char temp_data[5] = "abcd";
     FILE *f = fopen(file_name, "rb");
     if (!f)
-        goto err;
+        read_wav_file_chdr_err;
     fread(temp_data, 1, 4, f);
     if (strcmp(temp_data, "RIFF"))
-        goto err;
+        read_wav_file_chdr_err;
     unsigned f_size;
     fread(&f_size, sizeof(unsigned), 1, f);
     f_size += 8;
     fread(temp_data, 1, 4, f);
     if (strcmp(temp_data, "WAVE"))
-        goto err;
+        read_wav_file_chdr_err;
     unsigned len_fmt_data;
     if (read_until_header(f, f_size, "fmt ", &len_fmt_data, chdr))
-        goto err;
+        read_wav_file_chdr_err;
     if (len_fmt_data != 16)
-        goto err;
+        read_wav_file_chdr_err;
     unsigned short fmt_type;
     fread(&fmt_type, sizeof(unsigned short), 1, f);
     if (fmt_type != 1 && fmt_type != 3)
-        goto err;
+        read_wav_file_chdr_err;
     unsigned short num_channels;
     fread(&num_channels, sizeof(unsigned short), 1, f);
     unsigned sample_rate;
@@ -83,10 +90,10 @@ int read_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_f
     fread(&bit_depth, sizeof(unsigned short), 1, f);
     unsigned num_bytes = 0;
     if (read_until_header(f, f_size, "data", &num_bytes, chdr))
-        goto err;
+        read_wav_file_chdr_err;
     wav->data = (char *)malloc(num_bytes);
     if (!wav->data)
-        goto err;
+        read_wav_file_chdr_err;
     fread(wav->data, 1, num_bytes, f);
     // read headers that are after data header
     if (chdr)
@@ -102,10 +109,6 @@ int read_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_f
     wav->sample_rate = sample_rate;
     wav->is_float = fmt_type == 3;
     return 0;
-err:
-    if (f)
-        fclose(f);
-    return -1;
 }
 
 int free_wav_file(struct wav_file *wav)
