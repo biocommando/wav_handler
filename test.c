@@ -1,3 +1,9 @@
+/*
+    The idea of this program is to output wavefiles in multiple wav formats.
+    One can play the generated files back using a 3rd party program to verify
+    the functionality of the library.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
