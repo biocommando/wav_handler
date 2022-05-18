@@ -122,12 +122,12 @@ int free_wav_file(struct wav_file *wav)
     return -1;
 }
 
-int write_wav_file(const char *file_name, struct wav_file *wav)
+int write_wav_file(const char *file_name, const struct wav_file *wav)
 {
     return write_wav_file_chdr(file_name, wav, NULL);
 }
 
-int write_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_file_custom_header_data *chdr)
+int write_wav_file_chdr(const char *file_name, const struct wav_file *wav, const struct wav_file_custom_header_data *chdr)
 {
     if (!wav->data)
         return -1;
@@ -153,7 +153,7 @@ int write_wav_file_chdr(const char *file_name, struct wav_file *wav, struct wav_
     fwrite(&bit_depth, sizeof(unsigned short), 1, f);
     if (chdr)
     {
-        for (struct wav_file_custom_header_data *hdr = chdr; hdr->header_name[0]; hdr++)
+        for (const struct wav_file_custom_header_data *hdr = chdr; hdr->header_name[0]; hdr++)
         {
             fwrite(hdr->header_name, 1, 4, f);
             fwrite(&hdr->num_bytes, sizeof(unsigned), 1, f);
@@ -183,7 +183,7 @@ int create_wav_file(struct wav_file *wav, unsigned num_frames, unsigned channels
     return 0;
 }
 
-int wav_get_normalized(struct wav_file *wav, unsigned sample_idx, float *value)
+int wav_get_normalized(const struct wav_file *wav, unsigned sample_idx, float *value)
 {
     if (!wav->data)
         return -1;
